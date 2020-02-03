@@ -16,7 +16,9 @@ This is a repository for exploring the applications of machine learning techniqu
 -  Seeded the SQL database.  I've noticed warnings about different dtypes being on the same column.
   I have to check if it's something related to random strings in the original CSVs or if it's
   something related to the parsing process (ie: site_id for USGS datasets are recognized as int, but
-  site_id can be int or a varchar)/
+  site_id can be int or a varchar).
+- Had some issues pushing raw data files to github.  Had to force push to master with the changed code
+  and alter the data-wrangling branch...
 
 ### Added
 - Added this changelog.
