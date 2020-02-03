@@ -1,0 +1,10 @@
+machine_learning/study_resources
+machine_learning/data_load/raw_data/
+.ipynb_checkpoints
+.vscode
+machine-learning-workspace.code-workspace
+*.zip
+*.txt
+*.rtf
+*.doc
+*docx
