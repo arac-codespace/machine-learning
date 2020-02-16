@@ -13,10 +13,6 @@ def load_csv(file_path, tablename, source):
                      dtype={'site_no': object})
     df.columns = df.columns.str.replace(' ', '')
 
-    # Select all string values and strip whitespace...
-    df_obj = df.select_dtypes(['object'])
-    df[df_obj.columns] = df_obj.apply(lambda x: x.str.strip())
-
     # Do dataframe operations according to table name provided
     parsed_df = DataParser().get_parser(tablename)(df, source)
 
@@ -52,9 +48,12 @@ def populate_data(df, tablename, subset, update_db=False):
             print(df)            
     except Exception as err:
         # If table doesn't exist, set update db to original df...
+        print("Table doesn't exist...")
         print(err)
+        print("Creating...")
         df.to_sql(tablename, con=engine,
                         if_exists="append", index=False)
+        print("Done")
 
 
 def insert_sampling_sites(tablename = "site", update_db = False):
@@ -77,7 +76,7 @@ def insert_sampling_sites(tablename = "site", update_db = False):
     subset = "site_id"
 
     if update_db:        
-        populate_data(df, tablename, subset, update_db=False)
+        populate_data(df, tablename, subset, update_db=update_db)
     else:
         # Save concat file...
         current_path = Path()
@@ -109,7 +108,7 @@ def insert_nerr_data(tablename, update_db = False):
 
     subset = ["site_id", "source", "date_time"]
     if update_db:        
-        populate_data(df, tablename, subset, update_db=False)
+        populate_data(df, tablename, subset, update_db=update_db)
     else:
         # Save concat file...
         current_path = Path()
@@ -128,7 +127,7 @@ def insert_usgs_data(tablename, update_db = False):
 
     subset = ["site_id", "source", "date_time"]
     if update_db:        
-        populate_data(df, tablename, subset, update_db=False)
+        populate_data(df, tablename, subset, update_db=update_db)
     else:
         # Save concat file...
         current_path = Path()
@@ -138,8 +137,8 @@ def insert_usgs_data(tablename, update_db = False):
 
 
 if __name__ == '__main__':
-    insert_sampling_sites(update_db = False)
-    insert_nerr_data("water_quality_data", update_db = False)
-    insert_nerr_data("water_nutrient_data", update_db = False)
-    insert_nerr_data("precipitation_data", update_db = False)     
-    insert_usgs_data("well_data", update_db = False)
+    insert_sampling_sites(update_db = True)
+    insert_nerr_data("water_nutrient_data", update_db = True)
+    insert_nerr_data("precipitation_data", update_db = True)     
+    insert_usgs_data("well_data", update_db = True)
+    insert_nerr_data("water_quality_data", update_db = True)

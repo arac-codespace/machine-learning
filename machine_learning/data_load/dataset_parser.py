@@ -3,7 +3,6 @@ from sqlalchemy import create_engine
 from pathlib import Path
 import pdb
 
-
 # Relate original dataset column names to database tables.
 SITE_COLS = {
     "site_id": [
@@ -268,6 +267,44 @@ COUNTY_CODES = {
 
 class DataParser():
 
+    # Strip whitespace from dataframe...
+    def strip_whitespace(self, df):
+        # Select all string values and strip whitespace...
+        df_obj = df.select_dtypes(['object'])
+        df[df_obj.columns] = df_obj.apply(lambda x: x.str.strip())
+        return df
+
+    # Strips whitespace, renames columns and drops columns of no interest...
+    def general_parsing(self, df, table_columns):
+        df = self.strip_whitespace(df) 
+        # Change the review_stage column from codes to strings...
+        # Note that this must happen before rename and drop and only applies to NERR
+        if "Historical" in df.columns:
+            def set_review_stage(row):
+                if row["Historical"] == 1:
+                    return "Authenticated"
+                elif row["ProvisionalPlus"] == 1:
+                    return "ProvisionalPlus"
+                else:
+                    return "Provisional"            
+            df["Historical"] = df.apply(lambda row: set_review_stage(row), axis=1)               
+        # Rename columns...
+        df = df.rename(columns=lambda col: self.rename_columns(col, table_columns))
+        # Drop irrelevant columns...
+        if "to_drop" in df.columns:
+            df = df.drop('to_drop', axis='columns')
+        # Check if date_time is in the df...
+        if "date_time" in df.columns:
+            # Use date_time to set non datetime vals from the original tsv into NaT
+            # That way it's possible to drop rows that don't have real data...        
+            df["date_time"] = pd.to_datetime(df["date_time"], errors="coerce")
+            df = df.dropna(subset=['date_time'])         
+        # Add columns that are in the database but that aren't part of the original dataset
+        for key in table_columns:
+            if key not in df.columns:
+                df[key] = None                    
+        return df       
+
     # Function that maps parsing functions with table names...
     def get_parser(self, tablename):
         table_parser = {
@@ -286,14 +323,14 @@ class DataParser():
             return parser
 
     # Function to rename columns to database column names given an argument and a dictionary...
-    def rename_columns(self, argument, table_cols):
+    def rename_columns(self, argument, table_columns):
         # if argument is inside the values of the dictionary, iterate and get the key...
-        is_in_dict = argument in [x for v in table_cols.values() for x in v]
+        is_in_dict = argument in [x for v in table_columns.values() for x in v]
         if is_in_dict:
             # Iterate through keys, get value list and return key if argument
-            for key in table_cols.keys():
+            for key in table_columns.keys():
                 # Get values associated to db columns...
-                column_values = table_cols.get(key)
+                column_values = table_columns.get(key)
                 if column_values and argument in column_values:
                     return key
         else:
@@ -301,65 +338,38 @@ class DataParser():
 
     # Parser for the SITE database table...
     # Parses original csv datasets so it conforms with the SQL database schema.
-    def parse_site_data(self, df, source):
+    def parse_site_data(self, df, source, table_columns=SITE_COLS):
+        df = self.general_parsing(df,table_columns)
         if source == "USGS":
             # Replace county codes with names...
             if "county_cd" in df.columns:
                 df["county_cd"] = df["county_cd"].apply(
                     lambda x: COUNTY_CODES.get(x))
-            # Rename columns...
-            df = df.rename(columns=lambda col: self.rename_columns(col, SITE_COLS))
+
             # Add and Inquire about site type?
             df["site_type"] = "Groundwater Well"
-            # Drop irrelevant columns...
-            if "to_drop" in df.columns:
-                df = df.drop('to_drop', axis='columns')
-            # Add columns that are in the database but that aren't part of the original dataset
-            for key in SITE_COLS:
-                if key not in df.columns:
-                    df[key] = None            
+            
             return df
-
-        elif source == "NERR":
-            # Rename columns...
-            df = df.rename(columns=lambda col: self.rename_columns(col, SITE_COLS))        
+        elif source == "NERR":      
             # Replace station type with strings...
             if "site_type" in df.columns:
                 df["site_type"] = df["site_type"].apply(
                     lambda x: NERR_STATION_TYPE.get(x)
-                )        
-            # Drop irrelevant columns...
-            if "to_drop" in df.columns:
-                df = df.drop('to_drop', axis='columns')
+                )
             # Add missing source
             df["source"] = source
-            # Add columns that are in the database but that aren't part of the original dataset
-            for key in SITE_COLS:
-                if key not in df.columns:
-                    df[key] = None
+
             # Filter the dataframe so it returns only the rows of interest...
             df = df.loc[df["location"] == "Jobos Bay"]        
             return df
         else:
             raise "Parsing for current file and/or source is not supported..."
 
-    # Parser for the well_data database table...
+    # Parser for the time series database tables...        
     # Parses original csv datasets so it conforms with the SQL database schema.
-    def parse_well_data(self, df, source):
-        if source == "USGS":
-            # Rename columns...
-            df = df.rename(columns=lambda col: self.rename_columns(col, WELL_DATA_COLS))
-            # Drop irrelevant columns...
-            if "to_drop" in df.columns:
-                df = df.drop('to_drop', axis='columns')        
-            # Use date_time to set non datetime vals from the original tsv into NaT
-            # That way it's possible to drop rows that don't have real data...        
-            df["date_time"] = pd.to_datetime(df["date_time"], errors="coerce")
-            df = df.dropna(subset=['date_time'])
-            # Add columns that are in the database but that aren't part of the original dataset
-            for key in WELL_DATA_COLS:
-                if key not in df.columns:
-                    df[key] = None
+    def parse_time_series_data(self, df, source, table_columns):
+        df = self.general_parsing(df,table_columns)
+        if source == "USGS":                  
         # Replace review_stage code with strings...
             if "review_stage" in df.columns:
                 # USGS quality control codes...
@@ -370,106 +380,42 @@ class DataParser():
                 df["review_stage"] = df["review_stage"].apply(
                     lambda x: REVIEW_STAGE_CODES.get(x)
                 )                  
-            return df
-        else:
-            raise "Parsing for current file and/or source is not supported..."
-
-
-    def parse_water_quality_data(self, df, source):
-        if source == "NERR":
-
-            # Change the review_stage column from codes to strings...
-            def set_review_stage(row):
-                if row["Historical"] == 1:
-                    return "Authenticated"
-                elif row["ProvisionalPlus"] == 1:
-                    return "ProvisionalPlus"
-                else:
-                    return "Provisional"
-
-            df["Historical"] = df.apply(lambda row: set_review_stage(row), axis=1)
-            # Rename columns...
-            df = df.rename(columns=lambda col: self.rename_columns(col, WATER_QUALITY_COLS))
-            # Drop irrelevant columns...
-            if "to_drop" in df.columns:
-                df = df.drop('to_drop', axis='columns')        
-            # Use date_time to set non datetime vals from the original tsv into NaT
-            # That way it's possible to drop rows that don't have real data...        
-            df["date_time"] = pd.to_datetime(df["date_time"], errors="coerce")
-            df = df.dropna(subset=['date_time'])
-            # Add columns that are in the database but that aren't part of the original dataset
-            for key in WATER_QUALITY_COLS:
-                if key not in df.columns:
-                    df[key] = None
-            # Add missing source
-            df["source"] = source
-            df["timezone"] = "LST"                              
-            return df
-        else:
-            raise "Parsing for current file and/or source is not supported..."
-
-
-    def parse_water_nutrient_data(self, df, source):
-        if source == "NERR":
-            # Change the review_stage column from codes to strings...
-            def set_review_stage(row):
-                if row["Historical"] == 1:
-                    return "Authenticated"
-                elif row["ProvisionalPlus"] == 1:
-                    return "ProvisionalPlus"
-                else:
-                    return "Provisional"
-
-            df["Historical"] = df.apply(lambda row: set_review_stage(row), axis=1)
-            # Rename columns...
-            df = df.rename(columns=lambda col: self.rename_columns(col, WATER_NUTRIENTS_COLS))
-            # Drop irrelevant columns...
-            if "to_drop" in df.columns:
-                df = df.drop('to_drop', axis='columns')        
-            # Use date_time to set non datetime vals from the original tsv into NaT
-            # That way it's possible to drop rows that don't have real data...        
-            df["date_time"] = pd.to_datetime(df["date_time"], errors="coerce")
-            df = df.dropna(subset=['date_time'])
-            # Add columns that are in the database but that aren't part of the original dataset
-            for key in WATER_NUTRIENTS_COLS:
-                if key not in df.columns:
-                    df[key] = None
-            # Add missing source
-            df["source"] = source
-            df["timezone"] = "LST"                             
-            return df
-        else:
-            raise "Parsing for current file and/or source is not supported..."
-
-
-    def parse_precipitation_data(self, df, source):
-        if source == "NERR":
-            # Change the review_stage column from codes to strings...
-            def set_review_stage(row):
-                if row["Historical"] == 1:
-                    return "Authenticated"
-                elif row["ProvisionalPlus"] == 1:
-                    return "ProvisionalPlus"
-                else:
-                    return "Provisional"
-
-            df["Historical"] = df.apply(lambda row: set_review_stage(row), axis=1)
-            # Rename columns...
-            df = df.rename(columns=lambda col: self.rename_columns(col, PRECIPITATION_COLS))
-            # Drop irrelevant columns...
-            if "to_drop" in df.columns:
-                df = df.drop('to_drop', axis='columns')
-            # Use date_time to set non datetime vals from the original tsv into NaT
-            # That way it's possible to drop rows that don't have real data...        
-            df["date_time"] = pd.to_datetime(df["date_time"], errors="coerce")
-            df = df.dropna(subset=['date_time'])
-            # Add columns that are in the database but that aren't part of the original dataset
-            for key in PRECIPITATION_COLS:
-                if key not in df.columns:
-                    df[key] = None
-            # Add missing source
+            return df        
+        elif source == "NERR":            
+            # Add missing source and timezone...
             df["source"] = source
             df["timezone"] = "LST"
             return df
+        else:
+            raise "Parsing for current file and/or source is not supported..."
+
+    # Methods to fill in the time series data function based on the type of parser requested...
+    def parse_well_data(self, df, source, table_columns=WELL_DATA_COLS):
+        if source == "USGS":                  
+            df = self.parse_time_series_data(df, source, table_columns)
+            return df            
+        else:
+            raise "Parsing for current file and/or source is not supported..."
+
+    def parse_water_quality_data(self, df, source, table_columns=WATER_QUALITY_COLS):
+        if source == "NERR":            
+            df = self.parse_time_series_data(df, source, table_columns)
+            return df            
+        else:
+            raise "Parsing for current file and/or source is not supported..."
+
+
+    def parse_water_nutrient_data(self, df, source, table_columns=WATER_NUTRIENTS_COLS):
+        if source == "NERR":            
+            df = self.parse_time_series_data(df, source, table_columns)
+            return df            
+        else:
+            raise "Parsing for current file and/or source is not supported..."
+
+
+    def parse_precipitation_data(self, df, source, table_columns=PRECIPITATION_COLS):
+        if source == "NERR":            
+            df = self.parse_time_series_data(df, source, table_columns)
+            return df            
         else:
             raise "Parsing for current file and/or source is not supported..."

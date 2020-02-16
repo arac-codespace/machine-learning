@@ -5,11 +5,19 @@ This is a repository for exploring the applications of machine learning techniqu
 # Changelog
 
 ## [TODO]
-- Verify the integrity of the data.
-- Modify the SQL tables so they have proper relationships and constraints setup.
-- Save the resulting SQL schema as a script, perhaps save a backup of the data too.
-- Create classes for each of the table to facilitate access to stored data.
+- Create classes for each of the tables to facilitate access to stored data.
 - Start the data exploration branch.
+- Current seed method is way too slow.  May want to move away from pandas and
+  use pyodbc with an SQL statement to avoid duplicates (With CTE).
+
+## [0.0.01] - 2020-02-16
+### Notes
+- Generated the machine_learning_pr database schema script.
+- Seeded the database after creating the proper schema so as to assure that the
+  data is of the proper data type.
+
+### Changed
+- Refactored a lot of stuff in the dataset_parser.py.
 
 ## [0.0.01] - 2020-02-02
 ### Notes
