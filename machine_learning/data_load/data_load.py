@@ -1,28 +1,68 @@
 from .helpers import get_engine
 import pandas as pd
 
-# class Site():
-#     def __init__(self):
-#         self.tablename = "site"
-#         self._dataframe = self._fetch_data()
+SITES_TABLENAME = "site"
+PRECIPITATION_TABLENAME = "precipitation_data"
+WATERNUTRIENT_TABLENAME = "water_nutrient_data"
+WATERQUALITY_TABLENAME = "water_quality_data"
+GROUNDWATER_TABLENAME = "well_data"
+OBSERVATION_TABLENAMES = [
+    PRECIPITATION_TABLENAME + 
+    WATERNUTRIENT_TABLENAME + 
+    WATERQUALITY_TABLENAME +
+    GROUNDWATER_TABLENAME
+]
 
-#     # Fetch data from database once...
-#     def _fetch_data(self):
-#         engine = get_engine()
-#         tablename = self.tablename
+class AllSites():
+    def __init__(self):
+        self._sites = None
+        self._observations = {}
 
-#         sql_query = """
-#             SELECT *
-#             FROM {tablename}
-# 	    """.format(tablename=tablename)
+    # Fetch data from database once...
+    def _fetch_data(self, tablename):
+        engine = get_engine()
 
-#         df = pd.read_sql(sql_query, con=engine)
-#         return df
+        sql_query = f"SELECT * FROM {tablename}"
 
-#     # Return site data...
-#     def get_data(self):
-#         df = self._dataframe.copy()
-#         return df
+        df = pd.read_sql(sql_query, con=engine)
+        return df
+
+    # Return site data...
+    def get_all_sites(self):
+        sites = self._sites
+        if not sites:
+            sites = self._fetch_data(SITES_TABLENAME)
+            self._sites = sites
+            return sites.copy()
+        else:
+            return sites.copy()
+    
+    # Return np array with site types...
+    def get_site_types(self):
+        sites = self.get_all_sites()
+        site_types = sites["site_type"].unique()
+        return site_types
+
+    # Join site data with observation data...
+    def join_site_to_observation(self, observations_df):
+        sites_df = self.get_all_sites()
+        observations_df = observations_df.join(
+            sites_df.set_index('site_id'), on='key'
+        )
+        return observations_df
+
+    # Fetch all observations...
+    def get_observation_data(self, tablename):
+        observations = self._observations
+        df = observations.get(tablename)
+        if tablename not in observations:
+            # Map tablename key to df value...
+            df = self._fetch_data(tablename)
+            observations[tablename] = df
+            self._observations = observations
+            return df.copy()
+        else:
+            return df.copy()
 
 # TEMPORARY STUFF MUST THINK HOW TO DO THIS>...
 class Site():
@@ -48,17 +88,6 @@ class Site():
         self.end = None
         self._queried_observation_data = None
         self._queried_location_data = None
-        self._all_sites = self._fetch_all_sites()
-
-    # Fetch all sites stored in the database at init...
-    def _fetch_all_sites(self):
-        engine = get_engine()
-        tablename = "site"
-
-        sql_query = f"SELECT * FROM {tablename}"
-
-        df = pd.read_sql(sql_query, con=engine)
-        return df 
 
     # Fetch data from sql server...
     def _fetch_observation_data(self):
@@ -73,13 +102,13 @@ class Site():
 
         def get_table_name(site_type):
             if site_type == "Groundwater Well":
-                return "well_data"
+                return GROUNDWATER_TABLENAME
             elif site_type == "Water Quality":
-                return "water_quality_data"
+                return WATERQUALITY_TABLENAME
             elif site_type == "Nutrient":
-                return "water_nutrient_data"
+                return WATERNUTRIENT_TABLENAME
             elif site_type == "Meteorological":
-                return "precipitation_data"
+                return PRECIPITATION_TABLENAME
             else:
                 raise f"ERROR: No table related for site of type {site_type}"
     
@@ -101,7 +130,7 @@ class Site():
 
         # Get engine...
         engine = get_engine()
-        tablename = "site"
+        tablename = SITES_TABLENAME
         
         # load database records
         print("Loading database records...")
@@ -153,20 +182,16 @@ class Site():
         else:
             return self
 
-    # Well data getter...
+    # Data getter...
     def get_observation_data(self):
         df = self._queried_observation_data.copy()
+        df = df.set_index("date_time")
         return df
 
     # Location data getter...
     def get_location_data(self):
         df = self._queried_location_data.copy()
         return df
-
-    # All sites data getter...
-    def get_all_sites(self):
-        df = self._all_sites.copy()
-        return df 
 
 
 # # class Stations():
