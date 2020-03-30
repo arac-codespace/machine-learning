@@ -36,12 +36,11 @@ class UTIL:
 class USGS(UTIL):
     DEFAULT_URL = "https://waterservices.usgs.gov/nwis"
 
-
     """
         For more info about params for site endpoint:
         https://waterservices.usgs.gov/rest/Site-Service.html#format
     """
-    def get_usgs_sites(self, stateCd, **params):
+    def get_sites(self, stateCd, **params):
             query_params = []
             if stateCd:
                 param = f"stateCd={stateCd}"
@@ -61,3 +60,42 @@ class USGS(UTIL):
             df = pd.read_csv(io.StringIO(data.decode('utf-8')), sep='\t', comment='#')
             df = df.iloc[1:].reset_index(drop=True)            
             return df
+
+    def get_site_observations(self, site,**params):
+        # Takes the requests json response
+        def parse_observations_response(site, response):
+            # Get that data from json response
+            data = []
+            for timeseries in response["value"]["timeSeries"]:
+                for row in timeseries["values"]:
+                    for value_row in row["value"]:
+                        # Create a new row dictionary...
+                        new_row = {}
+                        # Qualifiers are in a list. Convert to str...
+                        new_row["site_no"] = site
+                        new_row["date_time"] = value_row.get("dateTime")
+                        new_row["value"] = value_row.get("value")
+                        new_row["qualifiers"] = ",".join(value_row.get("qualifiers"))
+
+                        data.append(new_row)
+            return data  
+      
+        query_params = []
+        if site:
+            param = f"site={site}"
+            query_params.append(param)
+
+        if params:
+            for param in params:
+                key = param
+                value = params[param]
+                query_params.append(f"{key}={value}")
+
+        end_point = "&".join(query_params)
+        end_point = f"iv/?{end_point}"
+        response = self.make_get_request(self.DEFAULT_URL, end_point = end_point)        
+        response = response.json()
+
+        data = parse_observations_response(site, response)
+        df = pd.DataFrame.from_dict(data)
+        return df

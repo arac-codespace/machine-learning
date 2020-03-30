@@ -5,10 +5,27 @@ This is a repository for exploring the applications of machine learning techniqu
 # Changelog
 
 ## [TODO]
-- Create classes for each of the tables to facilitate access to stored data.
 - Start the data exploration branch.
 - Current seed method is way too slow.  May want to move away from pandas and
   use pyodbc with an SQL statement to avoid duplicates (With CTE).
+- I may want to change the data repository to sqlite or some shareable type of storage.
+
+## [0.0.01] - 2020-03-29
+### Notes
+- I've decided to switch from using a local SQL Database to using the USGS Instantaneous Values Web Service and focus solely on groundwater data for now.  This will also allow me the flexibility to explore other areas of interest without the hassle of having to maintain a database.  It should also make it easier to share code.
+
+- I've also decided to use a combination of Plotly for Jupyter Lab prototyping and Dash for sharing in the future.  We'll see how this goes.
+
+- Another thing.  Making Jupyterlab work with the arcgis api (and ipywidgets) is a pain if you're trying to use the latest version as of today (2.0.1).  Stick with 1.2.6 and make sure you've installed ipywidgets, arcgis, the jupyter extension manager and the jupyter arcgis-map-ipywidget extension.
+
+
+## [0.0.01] - 2020-02-22
+### Notes
+- [IMPORTANT] The sampling_sites.csv is missing the negative number for the longitude of the Jobos Bay sites.  I've updated the SQL database to fix this issue.
+- The arcgis API doesn't like Nan, therefore it's important to replace those values with None or some other appropiate value when mapping...
+
+### Added
+- Created the classes to handle data fetching.
 
 ## [0.0.01] - 2020-02-16
 ### Notes
@@ -56,3 +73,14 @@ a custom column named site_id.  Columns of interest were kept and column named w
 
 # Timezones
 Observations from the USGS and NERR dataset are in LST (AST for Puerto Rico).
+
+# Resources
+### Random web resources:
+- https://www.machinelearningplus.com/time-series/time-series-analysis-python/
+- https://towardsdatascience.com/an-end-to-end-project-on-time-series-analysis-and-forecasting-with-python-4835e6bf050b
+- https://www.analyticsvidhya.com/blog/2016/02/time-series-forecasting-codes-python/
+
+### Primary sources (see study resources):
+- A Comparative Study of Groundwater Level Forecasting Using Data-Driven Models Based on Ensemble Empirical Mode Decomposition (Nice method section!)
+- Short‑term prediction of groundwater level using improved random forest regression with a combination of random features
+- Understanding groundwater table using a statistical model (interesting...)

@@ -2,14 +2,8 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from data_load.data_load import AllSites
+from data_load.usgs_data_load import USGS
 
-all_sites = AllSites()
-site_types = all_sites.get_site_types()
-
-site_type_options = [
-    {"label": str(site_type), "value": str(site_type)} for site_type in site_types
-]
 
 external_stylesheets = [
     'https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css'
@@ -25,6 +19,7 @@ app = dash.Dash(
     external_stylesheets=external_stylesheets,
     external_scripts=external_javascript
 )
+app.title = "Groundwater Exploration Dashboard"
 
 # Content for header div...
 header_children = [
@@ -57,13 +52,13 @@ filter_pane = [
                 className="dcc_control",
             ),
             html.P("Filter by observation type:", className="control_label"),
-            dcc.Dropdown(
-                id="well_types",
-                options=site_type_options,
-                multi=True,
-                # value=list(site_type_options.keys()),
-                className="dcc_control",
-            ),
+            # dcc.Dropdown(
+            #     id="well_types",
+            #     options=site_type_options,
+            #     multi=True,
+            #     # value=list(site_type_options.keys()),
+            #     className="dcc_control",
+            # ),
         ],
     )
 ]
