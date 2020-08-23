@@ -1,0 +1,12 @@
+study_resources
+data/
+
+data_profile
+.ipynb_checkpoints
+.vscode
+machine-learning-workspace.code-workspace
+*.zip
+*.txt
+*.rtf
+*.doc
+*docx
