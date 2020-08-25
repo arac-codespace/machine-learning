@@ -6,10 +6,16 @@ from app_constants import (
     usgs_historical_rain_data,
     aquifers_shapefile,
     hydrologic_basin_shapefile,
+    # Local csvs
     nerr_wq_data_path,
     nerr_met_data_path,
     nerr_nut_data_path,
-    nerr_stations_data_path
+    nerr_stations_data_path,
+    # Dropbox hosted csvs...
+    nerr_met_url,
+    nerr_nut_url,
+    nerr_stations_url,
+    nerr_wq_url
 )
 import json
 import geopandas as gpd
@@ -302,7 +308,8 @@ class StudyData:
 
 class NerrStudyData:
 
-    def __init__(self):
+    def __init__(self, online_source=False):
+        self.online_source = online_source
         self.nerr_wq_data = self._load_wq_data()
         self.nerr_met_data = self._load_met_data()
         self.nerr_nut_data = self._load_nut_data()
@@ -350,8 +357,13 @@ class NerrStudyData:
             "F_ChlFluor": "str"
         }
 
+        if self.online_source:
+            path = nerr_wq_url
+        else:
+            path = nerr_wq_data_path
+
         df = self._read_csv(
-            nerr_wq_data_path,
+            path,
             dtypes,
             dtypes.keys()
         )
@@ -388,11 +400,17 @@ class NerrStudyData:
             'F_TotPrcp': "str",
         }
 
+        if self.online_source:
+            path = nerr_met_url
+        else:
+            path = nerr_met_data_path
+
         df = self._read_csv(
-            nerr_met_data_path,
+            path,
             dtypes,
             dtypes.keys()
         )
+
         datecols = ["DateTimeStamp"]
         fmt = r"%m/%d/%Y %H:%M"
         df = self._preprocess_data(df, datecols, fmt)
@@ -418,11 +436,17 @@ class NerrStudyData:
             'F_CHLA_N': "str",
         }
 
+        if self.online_source:
+            path = nerr_nut_url
+        else:
+            path = nerr_nut_data_path
+
         df = self._read_csv(
-            nerr_nut_data_path,
+            path,
             dtypes,
             dtypes.keys()
         )
+
         datecols = ["DateTimeStamp"]
         fmt = r"%m/%d/%Y %H:%M"
         df = self._preprocess_data(df, datecols, fmt)
@@ -441,8 +465,13 @@ class NerrStudyData:
             'GMTOffset': "str",
         }
 
+        if self.online_source:
+            path = nerr_stations_url
+        else:
+            path = nerr_stations_data_path
+
         df = self._read_csv(
-            nerr_stations_data_path,
+            path,
             dtypes,
             dtypes.keys()
         )
@@ -454,7 +483,6 @@ class NerrStudyData:
             df.loc[mask, "Longitude"] *= -1
             return df
 
-        df = correct_coordinates(df)
         def classify_station(station_code):
 
             if "met" in station_code:
@@ -467,8 +495,8 @@ class NerrStudyData:
                 station_type = "Unknown"
             return station_type
 
+        df = correct_coordinates(df)
         df["StationType"] = df.StationCode.apply(lambda x: classify_station(x))
-        df
 
         return df
 

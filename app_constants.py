@@ -40,3 +40,15 @@ nerr_stations_data_path = nerr_data_path / "nerr_sampling_stations.csv"
 
 # Path for storing data profiles...
 data_profile = root_path / "data_profile"
+
+# Dropbox hosted csvs...
+# nerr_met_url = "https://www.dropbox.com/s/yqtxdgl6nheghq7/nerr_met_data.csv?dl=1"
+# nerr_nut_url = "https://www.dropbox.com/s/16z9y1e46f3j23u/nerr_nut_data.csv?dl=1"
+# nerr_stations_url = "https://www.dropbox.com/s/rov04m2ue4c4799/nerr_sampling_stations.csv?dl=1"
+# nerr_wq_url = "https://www.dropbox.com/s/zi7jvr8qfy7wmmx/nerr_wq_data.csv?dl=1"
+
+# Arcgis Hosted csvs...
+nerr_met_url = "https://arac-personal.maps.arcgis.com/sharing/rest/content/items/3358a0ba6e114cffaa47c11b510a5603/data"
+nerr_nut_url = "https://arac-personal.maps.arcgis.com/sharing/rest/content/items/d1569071716d4b569e2eee439e7765d5/data"
+nerr_stations_url = "https://arac-personal.maps.arcgis.com/sharing/rest/content/items/d6ced9d29ab54337b8b19d35b60feb01/data"
+nerr_wq_url = "https://arac-personal.maps.arcgis.com/sharing/rest/content/items/1f27606babee4482a229d4bf4b4163e4/data"

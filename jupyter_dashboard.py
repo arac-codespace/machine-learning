@@ -1,10 +1,17 @@
 import pandas as pd
-import folium
-from folium.plugins import MarkerCluster
-from folium import IFrame
+from ipywidgets import HTML
+from ipyleaflet import (
+    Map,
+    Marker,
+    MarkerCluster,
+    LayersControl,
+    Popup,
+    AwesomeIcon  
+)
 
 
-MAP_POPUP = """
+
+POPUP_TEMPLATE = """
   <!DOCTYPE html>
   <html>
   <head>
@@ -58,25 +65,26 @@ class StudyMap():
     PR_CENTER = [17.95524, -66.2200]
 
     @staticmethod
-    def create_map(location=PR_CENTER, zoom_start=13, *args, **kwargs):
-        follium_map = folium.Map(
-            location=location,
-            zoom_start=zoom_start,
+    def create_map(center=PR_CENTER, zoom=13, *args, **kwargs):
+        m1 = Map(
+            center=center,
+            zoom=zoom,
             *args,
             **kwargs
         )
-        return follium_map
+        return m1
 
     # Based on the popup html...
     @staticmethod
-    def create_popups_from_template(html_template, *args, **kwargs):
-        width, height = 300, 150
-        popup = folium.Popup(
-            IFrame(
-                MAP_POPUP(*args, **kwargs),
-                width=width,
-                height=height
-            )
+    def create_popups_from_template(
+        location,
+        html_template=POPUP_TEMPLATE,
+        *args,
+        **kwargs
+    ):
+        popup = Popup(
+            location=location,
+            child=HTML(html_template(*args, **kwargs))
         )
         return popup
 
@@ -84,16 +92,19 @@ class StudyMap():
     # and return map
     @staticmethod
     def create_stations_map(df):
-        follium_map = StudyMap.create_map()
+        m1 = StudyMap.create_map(scroll_wheel_zoom=True)
 
         for station_type in df.StationType.unique().tolist():
-            marker_cluster = MarkerCluster(
-                name=station_type).add_to(follium_map)
             mask = (df["StationType"] == station_type)
             df2 = df.loc[mask]
+
+            # markers that will be added to the cluster...
+            markers = []
             for idx, row in df2.iterrows():
+                location = [row.geometry.y, row.geometry.x]                
                 popup = StudyMap.create_popups_from_template(
-                    MAP_POPUP,
+                    location,
+                    POPUP_TEMPLATE,
                     row.StationName,
                     row.StationCode,
                     row.Status,
@@ -113,13 +124,31 @@ class StudyMap():
                     color = switcher.get(station_type, "gray")
                     return color
 
-                icon = "ok-sign" if row.Status == "Active" else "remove-sign"
-                folium.Marker(
-                    location=[row.geometry.y, row.geometry.x],
-                    popup=popup,
-                    tooltip=f"{row.StationType} - {row.StationCode}",
-                    icon=folium.Icon(color=get_color(row.StationType), icon=icon),
-                ).add_to(marker_cluster)
+                icon_name = "check-circle" if row.Status == "Active" else "times-circle"
 
-        follium_map.add_child(folium.LayerControl())
-        return follium_map
+                icon = AwesomeIcon(
+                    name=icon_name,
+                    marker_color=get_color(row.StationType),
+                    icon_color='white',
+                    spin=False
+                )
+
+                markers.append(
+                    Marker(
+                        location=location,
+                        popup=popup,
+                        title=f"{row.StationType} - {row.StationCode}",
+                        icon=icon
+                    )
+                )
+            # Group all the markers for each station type
+            # and add them as a layer to map
+            marker_cluster = MarkerCluster(
+                name=station_type,
+                markers=markers
+            )
+            m1.add_layer(marker_cluster)
+        # Create the layer control and add to map
+        control = LayersControl(position='topright')
+        m1.add_control(control)
+        return m1
