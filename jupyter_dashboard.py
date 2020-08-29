@@ -1,154 +1,45 @@
 import pandas as pd
-from ipywidgets import HTML
-from ipyleaflet import (
-    Map,
-    Marker,
-    MarkerCluster,
-    LayersControl,
-    Popup,
-    AwesomeIcon  
-)
+import ipywidgets as widgets
+from custom_widgets import FilterWidgets, HeatmapWidgets, LineplotWidgets, PairplotWidgets, StudyMap
+from custom_widgets import filter_by_station_code, filter_by_validation_code
+from IPython.display import display
 
+class WidgetDashboard(HeatmapWidgets, LineplotWidgets, PairplotWidgets):
+    # https://towardsdatascience.com/interactive-controls-for-jupyter-notebooks-f5c94829aee6
+    # https://python-forum.io/Thread-Visualisation-of-gaps-in-time-series-data
 
+    @classmethod
+    def display_summary_widget(cls, df, locations_df, include_all=False):
+        options = df.StationCode.unique().tolist()
+        stations_dropdown = cls.create_stations_dropdown(options, include_all)
+        validation_dropdown = cls.create_validation_dropdown()
 
-POPUP_TEMPLATE = """
-  <!DOCTYPE html>
-  <html>
-  <head>
-  <style>
-  table {{
-    font-family: arial, sans-serif;
-    border-collapse: collapse;
-    width: 100%;
-    font-size: 14px;
-  }}
+        def on_dropdown_update(df, locations_df, station_code, validation_code):
+            # Filter by validation code
+            df = filter_by_station_code(df, station_code)
+            # Filter by station code
+            df = filter_by_validation_code(df, validation_code)
 
-  td, th {{
-    border: 1px solid #dddddd;
-    text-align: left;
-    padding: 4px;
-  }}
+            # Filter locations_df by station code
+            filtered_stations = df.StationCode.unique().tolist()
+            mask = (locations_df["StationCode"].isin(filtered_stations))
+            locations_df = locations_df.loc[mask]
+            study_map = StudyMap.create_stations_map(locations_df)
 
-  </style>
-  </head>
-  <body>
-  <table>
-    <tr>
-      <td><strong>Station Name</strong></td>
-      <td>{}</td>
-    </tr>
-    <tr>
-      <td><strong>Station Code</strong></td>
-      <td>{}</td>
-    </tr>
-    <tr>
-      <td><strong>Status</strong></td>
-      <td>{}</td>
-    </tr>
-    <tr>
-      <td><strong>Reserve Name</strong></td>
-      <td>{}</td>
-    </tr>
-    <tr>
-      <td><strong>Active Dates</strong></td>
-      <td>{}</td>
-    </tr>
-  </table>
+            display(study_map)
+            if not df.empty:
+                msg = f"Summary for {station_code}: {validation_code}"
+                display(widgets.HTML(msg))
+                display(df.groupby("StationCode").describe().stack())
+            else:
+                msg = "No data was found with the selected filters. {station_code}: {validation_code}"
+                msg += "Unable to generate report."
+                display(widgets.HTML(msg))
 
-  </body>
-  </html>
-""".format
-
-
-class StudyMap():
-
-    PR_CENTER = [17.95524, -66.2200]
-
-    @staticmethod
-    def create_map(center=PR_CENTER, zoom=13, *args, **kwargs):
-        m1 = Map(
-            center=center,
-            zoom=zoom,
-            *args,
-            **kwargs
+        widgets.interact(
+            on_dropdown_update,
+            df=widgets.fixed(df),
+            locations_df=widgets.fixed(locations_df),
+            station_code=stations_dropdown,
+            validation_code=validation_dropdown
         )
-        return m1
-
-    # Based on the popup html...
-    @staticmethod
-    def create_popups_from_template(
-        location,
-        html_template=POPUP_TEMPLATE,
-        *args,
-        **kwargs
-    ):
-        popup = Popup(
-            location=location,
-            child=HTML(html_template(*args, **kwargs))
-        )
-        return popup
-
-    # Appends markers to map based on df
-    # and return map
-    @staticmethod
-    def create_stations_map(df):
-        m1 = StudyMap.create_map(scroll_wheel_zoom=True)
-
-        for station_type in df.StationType.unique().tolist():
-            mask = (df["StationType"] == station_type)
-            df2 = df.loc[mask]
-
-            # markers that will be added to the cluster...
-            markers = []
-            for idx, row in df2.iterrows():
-                location = [row.geometry.y, row.geometry.x]                
-                popup = StudyMap.create_popups_from_template(
-                    location,
-                    POPUP_TEMPLATE,
-                    row.StationName,
-                    row.StationCode,
-                    row.Status,
-                    row.ReserveName,
-                    row.ActiveDates,
-                    row.StationType
-                )
-
-                # Give color to marker based on station_type
-                def get_color(station_type):
-                    switcher = {
-                        "Meteorological": "blue",
-                        "Nutrients": "green",
-                        "Water Quality": "red",
-                    }
-
-                    color = switcher.get(station_type, "gray")
-                    return color
-
-                icon_name = "check-circle" if row.Status == "Active" else "times-circle"
-
-                icon = AwesomeIcon(
-                    name=icon_name,
-                    marker_color=get_color(row.StationType),
-                    icon_color='white',
-                    spin=False
-                )
-
-                markers.append(
-                    Marker(
-                        location=location,
-                        popup=popup,
-                        title=f"{row.StationType} - {row.StationCode}",
-                        icon=icon
-                    )
-                )
-            # Group all the markers for each station type
-            # and add them as a layer to map
-            marker_cluster = MarkerCluster(
-                name=station_type,
-                markers=markers
-            )
-            m1.add_layer(marker_cluster)
-        # Create the layer control and add to map
-        control = LayersControl(position='topright')
-        m1.add_control(control)
-        return m1

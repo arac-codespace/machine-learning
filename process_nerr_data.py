@@ -79,7 +79,7 @@ nut_cols = [
     'DateTimeStamp',
     'Historical',
     'ProvisionalPlus',
-    #     'CollMethd',
+    'CollMethd',
     #     'REP',
     #     'F_Record',
     'PO4F',

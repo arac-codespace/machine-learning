@@ -422,6 +422,7 @@ class NerrStudyData:
             'DateTimeStamp': "str",
             'Historical': "str",
             'ProvisionalPlus': "str",
+            "CollMethd": "str",
             'PO4F': "float",
             'F_PO4F': "str",
             'NH4F': "float",
