@@ -1,13 +1,13 @@
 import ipywidgets as widgets
 import pandas as pd
-from ipyleaflet import (
-    Map,
-    Marker,
-    MarkerCluster,
-    LayersControl,
-    Popup,
-    AwesomeIcon
-)
+# from ipyleaflet import (
+#     Map,
+#     Marker,
+#     MarkerCluster,
+#     LayersControl,
+#     Popup,
+#     AwesomeIcon
+# )
 import seaborn as sns
 from IPython.display import display
 
