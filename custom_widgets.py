@@ -1,15 +1,10 @@
 import ipywidgets as widgets
 import pandas as pd
-# from ipyleaflet import (
-#     Map,
-#     Marker,
-#     MarkerCluster,
-#     LayersControl,
-#     Popup,
-#     AwesomeIcon
-# )
 import seaborn as sns
 from IPython.display import display
+import folium
+from folium.plugins import MarkerCluster
+from folium import IFrame, Map, Popup, Icon, Marker, LayerControl
 
 ALL = "All"
 
@@ -436,109 +431,6 @@ POPUP_TEMPLATE = """
   </html>
 """.format
 
-# # Ipywidget code...
-# class StudyMap():
-
-#     PR_CENTER = [17.95524, -66.2200]
-
-#     @staticmethod
-#     def create_map(center=PR_CENTER, zoom=13, *args, **kwargs):
-#         m1 = Map(
-#             center=center,
-#             zoom=zoom,
-#             *args,
-#             **kwargs
-#         )
-#         return m1
-
-#     # Based on the popup html...
-#     @staticmethod
-#     def create_popups_from_template(
-#         location,
-#         html_template=POPUP_TEMPLATE,
-#         *args,
-#         **kwargs
-#     ):
-#         popup = Popup(
-#             location=location,
-#             child=widgets.HTML(html_template(*args, **kwargs))
-#         )
-#         return popup
-
-#     # Appends markers to map based on df
-#     # and return map
-#     @staticmethod
-#     def create_stations_map(df):
-#         m1 = StudyMap.create_map(scroll_wheel_zoom=True)
-
-#         for station_type in df.StationType.unique().tolist():
-#             mask = (df["StationType"] == station_type)
-#             df2 = df.loc[mask]
-
-#             # markers that will be added to the cluster...
-#             markers = []
-#             for idx, row in df2.iterrows():
-#                 location = [row.geometry.y, row.geometry.x]
-#                 popup = StudyMap.create_popups_from_template(
-#                     location,
-#                     POPUP_TEMPLATE,
-#                     row.StationName,
-#                     row.StationCode,
-#                     row.StationType,
-#                     row.Status,
-#                     row.ReserveName,
-#                     row.ActiveDates,
-#                     row.StationType
-#                 )
-
-#                 # Give color to marker based on station_type
-#                 def get_color(station_type):
-#                     switcher = {
-#                         "Meteorological": "blue",
-#                         "Nutrients": "green",
-#                         "Water Quality": "red",
-#                     }
-
-#                     color = switcher.get(station_type, "gray")
-#                     return color
-
-#                 icon_name = "check-circle" if row.Status == "Active" else "times-circle"
-
-#                 icon = AwesomeIcon(
-#                     name=icon_name,
-#                     marker_color=get_color(row.StationType),
-#                     icon_color='white',
-#                     spin=False
-#                 )
-
-#                 markers.append(
-#                     Marker(
-#                         location=location,
-#                         popup=popup,
-#                         title=f"{row.StationType} - {row.StationCode}",
-#                         icon=icon,
-#                         draggable=False,
-#                         rise_on_hover=True
-#                     )
-#                 )
-#             # Group all the markers for each station type
-#             # and add them as a layer to map
-#             marker_cluster = MarkerCluster(
-#                 name=station_type,
-#                 markers=markers
-#             )
-#             m1.add_layer(marker_cluster)
-#         # Create the layer control and add to map
-#         control = LayersControl(position='topright')
-#         m1.add_control(control)
-#         return m1
-
-# Follium code...
-import folium
-from folium.plugins import MarkerCluster
-from folium import IFrame, Map, Popup, Icon, Marker, LayerControl
-
-
 class StudyMap():
     PR_CENTER = [17.95524, -66.2200]
 
@@ -614,17 +506,15 @@ class StudyMap():
                 icon = Icon(
                     icon=icon_name,
                     color=get_color(row.StationType),
-                    icon_color='white',
-                    spin=False
+                    icon_color='white'
                 )
 
                 Marker(
                     location=location,
                     popup=popup,
-                    title=f"{row.StationType} - {row.StationCode}",
+                    tooltip=f"{row.StationType} - {row.StationCode}",
                     icon=icon,
-                    draggable=False,
-                    rise_on_hover=True
+                    draggable=False
                 ).add_to(m1)
 
         # Create the layer control and add to map
