@@ -1,4 +1,80 @@
 import numpy as np
+from apache_beam.io import NamedTuple
+
+
+class WQFields(NamedTuple):
+
+    index_mapping = dict(
+        stationcode = x[0],
+        datetimestamp = x[1],
+        historical= x[2],
+        provisional
+    )
+
+    "stationcode": 0,
+    "isswmp": 1,
+    "datetimestamp": 2,
+    "historical": 3,
+    "provisionalplus": 4,
+    "f_record": 5,
+    "temp": 6,
+    "f_temp": 7,
+    "spcond": 8,
+    "f_spcond": 9,
+    "sal": 10,
+    "f_sal": 11,
+    "do_pct": np.float32,
+    "f_do_pct": "o",
+    "do_mgl": np.float32,
+    "f_do_mgl": "o",
+    "depth": np.float32,
+    "f_depth": "o",
+    "cdepth": np.float32,
+    "f_cdepth": "o",
+    "level": np.float32,
+    "f_level": "o",
+    "clevel": np.float32,
+    "f_clevel": "o",
+    "ph": np.float32,
+    "f_ph": "o",
+    "turb": np.float32,
+    "f_turb": "o",
+    "chlfluor": np.float32,
+    "f_chlfluor": "o"
+
+
+beam_mapping = dict(
+    StationCode = str(row[0]),
+    isSWMP = str(row[1]),
+    DateTimeStamp = np.datetime64(parse(row[2])),
+    Historical = np.int(row[3]),
+    ProvisionalPlus = np.int(row[4]),
+    F_Record = str(row[5]),
+    Temp = np.float(row[6]) if row[6] else np.nan,
+    F_Temp = str(row[7]),
+    SpCond = np.float(row[8]) if row[8] else np.nan,
+    F_SpCond = str(row[9]),
+    Sal = np.float(row[10]) if row[10] else np.nan,
+    F_Sal = str(row[11]),
+    DO_Pct = np.float(row[12]) if row[12] else np.nan,
+    F_DO_Pct = str(row[13]),
+    DO_mgl = np.float(row[14]) if row[14] else np.nan,
+    F_DO_mgl = str(row[15]),
+    Depth = np.float(row[16]) if row[16] else np.nan,
+    F_Depth = str(row[17]),
+    cDepth = np.float(row[18]) if row[18] else np.nan,
+    F_cDepth = str(row[19]),
+    Level = np.float(row[20]) if row[20] else np.nan,
+    F_Level = str(row[21]),
+    cLevel = np.float(row[22]) if row[22] else np.nan,
+    F_cLevel = str(row[23]),
+    pH = np.float(row[24]) if row[24] else np.nan,
+    F_pH = str(row[25]),
+    Turb = np.float(row[26]) if row[26] else np.nan,
+    F_Turb = str(row[27]),
+    ChlFluor = np.float(row[28]) if row[28] else np.nan,
+    F_ChlFluor = str(row[29])
+)
 
 # These are based on the original csv file names
 # Note that these column names may sometimes have spaces
@@ -6,7 +82,7 @@ import numpy as np
 # use these constants for processed data...
 wq_cols = {
     "StationCode": "O",
-    # "isSWMP": "O",
+    "isSWMP": "O",
     "DateTimeStamp": np.datetime64,
     "Historical": np.int32,
     "ProvisionalPlus": np.int32,
@@ -37,9 +113,10 @@ wq_cols = {
     "F_ChlFluor": "O"
 }
 
+
 met_cols = {
     'StationCode': "O",
-    # 'isSWMP': "O",
+    'isSWMP': "O",
     'DatetimeStamp': np.datetime64,
     'Historical': np.int32,
     'ProvisionalPlus': np.int32,
@@ -55,7 +132,6 @@ met_cols = {
     'F_WSpd': "O",
     'MaxWSpd': np.float32,
     'F_MaxWSpd': "O",
-    # This is duration
     'MaxWSpdT': "O",
     'Wdir': np.float32,
     'F_Wdir': "O",
@@ -71,11 +147,11 @@ met_cols = {
 
 nut_cols = {
     'StationCode': "O",
-    # 'isSWMP': "O",
+    'isSWMP': "O",
     'DateTimeStamp': np.datetime64,
     'Historical': np.int32,
     'ProvisionalPlus': np.int32,
-    # 'CollMethd': np.int32,
+    'CollMethd': np.int32,
     'REP': "O",
     'F_Record': "O",
     'PO4F': np.float32,
@@ -94,22 +170,22 @@ nut_cols = {
 
 # NOTE: Some of the columns have spaces in the source...
 station_cols = {
-    # 'Row',
+    'Row',
     'NERR Site ID ': "O",
     'Station Code': "O",
     'Station Name': "O",
-    # 'Lat Long',
+    'Lat Long',
     'Latitude ': np.float32,
     ' Longitude': np.float32,
     ' Status': "O",
     ' Active Dates': "O",
     ' State': "O",
     ' Reserve Name': "O",
-    # 'Real Time',
-    # 'HADS ID',
+    'Real Time',
+    'HADS ID',
     'GMT Offset': "O",
-    # 'Station Type',
-    # 'Region',
-    # 'isSWMP': "O",
+    'Station Type',
+    'Region',
+    'isSWMP': "O",
     'Parameters Reported': "O"
 }
